@@ -1,0 +1,26 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-production
+    spec.ingressClassName: traefik
+  labels:
+    app: pgadmin4
+  name: pgadmin4
+  namespace: default
+spec:
+  rules:
+  - host: pgadmin2.odoo-shell.dev
+    http:
+      paths:
+      - backend:
+          service:
+            name: pgadmin4-service
+            port:
+              number: 5050
+        path: /
+        pathType: Prefix
+  tls:
+  - hosts:
+    - pgadmin2.odoo-shell.dev
+    secretName: pgadmin-odoo-shell-dev-tls
