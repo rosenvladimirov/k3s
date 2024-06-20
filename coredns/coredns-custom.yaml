@@ -1,0 +1,11 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: coredns-custom
+  namespace: kube-system
+data:
+  external.server: |
+    cluster.external:53 {
+      kubernetes
+      k8s_external cluster.external
+    }

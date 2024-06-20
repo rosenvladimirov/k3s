@@ -1,60 +1,63 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: odoo16
+  name: odoo15
   labels:
-    app: odoo
+    app: odoo15
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: odoo
+      app: odoo15
   template:
     metadata:
       labels:
-        app: odoo
+        app: odoo15
     spec:
       containers:
-      - name: odoo
-        image: rosenvladimirov/odoo:16.0
+      - name: odoo15
+        image: odoo:15
         ports:
         - containerPort: 8069
         env:
         - name: HOST
-          value: odoo-16
+          value: odoo-15
         - name: USER
           value: odoo
         - name: PASSWORD
-          value: odoo16
+          value: odoo15
         volumeMounts:
         - mountPath: /var/lib/odoo
           name: data
-        - mountPath: /opt
-          name: opt
+        - mountPath: /mnt/extra-addons
+          name: mnt
         - mountPath: /etc/odoo/odoo.conf
           name: conf
       volumes:
       - name: data
         persistentVolumeClaim:
-          claimName: odoo-16-data-pvc
-      - name: opt
+          claimName: odoo-15-1-data-pvc
+      - name: mnt
         hostPath:
-          path: /opt
+          path: /mnt/odoo-15.0
           type: Directory
       - name: conf
         hostPath:
-          path: /etc/odoo/odoo-16.1/odoo.conf
+          path: /etc/odoo/odoo-15.0/odoo.conf
           type: File
 ---
 apiVersion: v1
 kind: Service
 metadata:    
-  name: odoo-service
+  name: odoo-15-service
 spec:
   type: ClusterIP
   selector:
-    app: odoo
+    app: odoo15
   ports:
-  - name: odoo-port
+  - name: odoo-15-port
     port: 8069
     targetPort: 8069
+  - name: odoo-15-port-im
+    port: 8072
+    targetPort: 8072

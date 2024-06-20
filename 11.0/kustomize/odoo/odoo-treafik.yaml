@@ -1,5 +1,3 @@
-# ingress ingress-nginx.yaml
-
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
@@ -7,22 +5,22 @@ metadata:
     cert-manager.io/cluster-issuer: letsencrypt-production
     spec.ingressClassName: traefik
   labels:
-    app: portainer
-  name: portainer
-  namespace: portainer
+    app: odoo
+  name: odoo
+  namespace: default
 spec:
   rules:
-  - host: portainer2.odoo-shell.dev # Change by your domain
+  - host: dev1.odoo-shell.dev
     http:
       paths:
       - backend:
           service:
-            name: portainer
-            port: 
-              number: 9000
+            name: odoo-service
+            port:
+              number: 8069
         path: /
         pathType: Prefix
   tls:
   - hosts:
-    - portainer2.odoo-shell.dev 
-    secretName: portainer-odoo-shell-dev-tls
+    - dev1.odoo-shell.dev
+    secretName: dev1-odoo-shell-dev-tls

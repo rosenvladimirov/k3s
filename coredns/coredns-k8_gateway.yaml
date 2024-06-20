@@ -1,0 +1,136 @@
+# 01-dns.yaml
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: excoredns
+  namespace: kube-system
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: excoredns
+  namespace: kube-system
+data:
+  Corefile: |-
+    .:53 {
+        errors
+        log
+        ready
+        k8s_gateway odoo-shell.dev {
+            resources Ingress
+            ttl 1800
+            fallthrough
+        }
+        file /etc/coredns/db.odoo-shell.dev
+        forward . /etc/resolv.conf
+        cache 30
+        loop
+        reload
+        loadbalance
+    }
+  # Below entry is written in RFC 1035 format and allows other kinds of records to be inserted
+  db.odoo-shell.dev: |-
+    $ORIGIN odoo-shell.dev.
+    @ IN SOA ns1.odoo-shell-dev. ns2.odoo-shell.dev. (
+        2022042701 ; SERIAL
+        1800 ; REFRESH
+        600 ; RETRY
+        3600000 ; EXPIRE
+        60 ; MINIMUM
+        )
+    ; Glue Records
+    ns1 IN A 192.168.3.118
+    ns2 IN A 192.168.3.118
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: excoredns
+rules:
+- apiGroups:
+  - ""
+  resources:
+  - services
+  - namespaces
+  verbs:
+  - list
+  - watch
+- apiGroups:
+  - extensions
+  - networking.k8s.io
+  resources:
+  - ingresses
+  verbs:
+  - list
+  - watch
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: excoredns
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: excoredns
+subjects:
+- kind: ServiceAccount
+  name: excoredns
+  namespace: kube-system
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: external-dns
+  namespace: kube-system
+spec:
+  selector:
+    k8s-app: excoredns
+  ports:
+  - {port: 53, protocol: UDP, name: udp-53}
+  type: LoadBalancer
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: excoredns
+  namespace: kube-system
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      k8s-app: "excoredns"
+  template:
+    metadata:
+      labels:
+        k8s-app: "excoredns"
+    spec:
+      serviceAccountName: excoredns
+      dnsPolicy: ClusterFirst
+      containers:
+      - name: "coredns"
+        image: "quay.io/oriedge/k8s_gateway"
+        imagePullPolicy: IfNotPresent
+        args: [ "-conf", "/etc/coredns/Corefile" ]
+        volumeMounts:
+        - name: config-volume
+          mountPath: /etc/coredns
+        resources:
+          limits:
+            cpu: 100m
+            memory: 128Mi
+          requests:
+            cpu: 100m
+            memory: 128Mi
+        ports:
+        - {containerPort: 53, protocol: UDP, name: udp-53}
+        - {containerPort: 53, protocol: TCP, name: tcp-53}
+      volumes:
+        - name: config-volume
+          configMap:
+            name: excoredns
+            items:
+            - key: Corefile
+              path: Corefile
+            - key: db.odoo-shell.dev
+              path: db.odoo-shell.dev

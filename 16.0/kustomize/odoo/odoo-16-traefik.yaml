@@ -3,24 +3,30 @@ kind: Ingress
 metadata:
   annotations:
     cert-manager.io/cluster-issuer: letsencrypt-production
-    spec.ingressClassName: traefik
   labels:
     app: odoo
-  name: odoo
-  namespace: default
+  name: odoo16
+  namespace: odoo-16
 spec:
   rules:
-  - host: dev1.odoo-shell.dev
+  - host: dev2.odoo-shell.dev
     http:
       paths:
-      - backend:
+      - path: /
+        pathType: Prefix
+        backend:
           service:
             name: odoo-service
             port:
               number: 8069
-        path: /
+      - path: /longpolling
         pathType: Prefix
+        backend:
+          service:
+            name: odoo-service
+            port:
+              number: 8072
   tls:
   - hosts:
-    - dev1.odoo-shell.dev
-    secretName: 16-odoo-shell-dev-tls
+    - dev2.odoo-shell.dev
+    secretName: dev2-odoo-shell-dev-tls

@@ -1,0 +1,6 @@
+apiVersion: "acid.zalan.do/v1"
+kind: postgresql
+metadata:
+  name: access-control
+spec:
+  enableLogicalBackup: true

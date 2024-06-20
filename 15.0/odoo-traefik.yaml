@@ -1,0 +1,33 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-production
+    traefik.ingress.kubernetes.io/router.entrypoints: web
+  labels:
+    app: odoo15
+  name: odoo15
+  namespace: default
+spec:
+  rules:
+  - host: access.example.com
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: odoo-15-service
+            port:
+              number: 8069
+      - path: /longpolling
+        pathType: Prefix
+        backend:
+          service:
+            name: odoo-15-service
+            port:
+              number: 8072
+  tls:
+  - hosts:
+    - access.example.com
+    secretName: access-example-com-eu-tls

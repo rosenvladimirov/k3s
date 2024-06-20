@@ -1,0 +1,74 @@
+apiVersion: postgresql.cnpg.io/v1
+kind: Cluster
+metadata:
+  name: odoo-16-db
+  namespace: odoo-16
+  labels:
+    environment: dev
+    app: postgres
+spec:
+  instances: 2
+  primaryUpdateStrategy: unsupervised
+  imageName: 'ghcr.io/cloudnative-pg/postgresql:16'
+  replicationSlots:
+    highAvailability:
+      enabled: true
+    updateInterval: 300
+  storage:
+    size: 25Gi
+    storageClass: openebs-hostpath
+  monitoring:
+    enablePodMonitor: true
+  affinity:
+    enablePodAntiAffinity: true
+    topologyKey: failure-domain.beta.kubernetes.io/zone
+  bootstrap:
+    initdb:
+      database: odoo-16
+      owner: odoo
+      secret:
+        name: odoo-16-db-odoo
+  managed:
+    roles:
+    - name: rosen.vladimirov
+      ensure: present
+      comment: Administrator
+      login: true
+      superuser: true
+      createdb: true
+      createrole: true
+      inherit: true
+      passwordSecret:
+        name: odoo-16-db-rosen-vladimirov
+  backup:
+    barmanObjectStore:
+      destinationPath: 's3://odoo-dev/'
+      endpointURL: 'https://eu2.contabostorage.com/'
+      s3Credentials:
+        accessKeyId:
+          name: contabo-creds
+          key: ACCESS_KEY_ID
+        secretAccessKey:
+          name: contabo-creds
+          key: ACCESS_SECRET_KEY
+    retentionPolicy: "3d"
+---
+apiVersion: v1
+data:
+  username: cm9zZW4udmxhZGltaXJvdg==
+  password: MTIzNjU0QEAhIQ==
+kind: Secret
+metadata:
+  name: odoo-16-db-rosen-vladimirov
+  namespace: odoo-16
+type: kubernetes.io/basic-auth
+---
+apiVersion: v1
+data:
+  username: b2Rvbw==
+  password: b2RvbzE2
+kind: Secret
+metadata:
+  name: odoo-16-db-odoo
+  namespace: odoo-16
+type: kubernetes.io/basic-auth

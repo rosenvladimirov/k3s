@@ -1,7 +1,7 @@
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
-  name: odoo-16-data-pvc
+  name: odoo-16-exrernal-pvc
   namespace: odoo-16
 spec:
   accessModes:

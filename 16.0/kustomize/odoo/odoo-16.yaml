@@ -1,0 +1,90 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: odoo16
+  namespace: odoo-16
+  labels:
+    app: odoo
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: odoo
+  template:
+    metadata:
+      labels:
+        app: odoo
+    spec:
+      containers:
+      - name: odoo
+        image: odoo:16.0
+#        command: [ "sleep" ]
+#        args: [ "infinity" ]
+        ports:
+        - containerPort: 8069
+#        - containerPort: 8071
+        - containerPort: 8072
+        env:
+        - name: HOST
+          value: odoo-16-db
+        - name: USER
+          value: odoo
+        - name: PASSWORD
+          value: odoo16
+        volumeMounts:
+        - mountPath: /var/lib/odoo
+          name: data
+        - mountPath: /mnt/extra-addons
+          name: mnt
+        - mountPath: /opt
+          name: opt
+        - mountPath: /etc/odoo/odoo.conf
+          name: conf
+          subPath: odoo.conf
+      initContainers:
+      - name: change-ownership-odoo
+        image: busybox
+        command: ["/bin/sh", "-c"]
+        args: ["chown -R 101:101 /var/lib/odoo"]
+        securityContext:
+          runAsUser: 0
+          privileged: true
+        volumeMounts:
+        - mountPath: /var/lib/odoo
+          name: data
+        - mountPath: /etc/odoo/odoo.conf
+          name: conf
+          subPath: odoo.conf
+      volumes:
+      - name: data
+        persistentVolumeClaim:
+          claimName: odoo-16-data-pvc
+      - name: opt
+        persistentVolumeClaim:
+          claimName: odoo-16-opt-pvc
+      - name: mnt
+        persistentVolumeClaim:
+          claimName: odoo-16-exrernal-pvc
+      - name: conf
+        configMap:
+          name: odoo-config-data
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: odoo-service
+  namespace: odoo-16
+spec:
+  type: ClusterIP
+  selector:
+    app: odoo
+  ports:
+  - name: odoo-service-base
+    port: 8069
+    targetPort: 8069
+#  - name: odoo-service-ssl
+#    port: 8071
+#    targetPort: 8071
+  - name: odoo-service-im
+    port: 8072
+    targetPort: 8072

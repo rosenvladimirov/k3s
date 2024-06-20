@@ -1,0 +1,27 @@
+# ingress ingress-nginx.yaml
+
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-production
+  labels:
+    app: rook-ceph-mgr-dashboard
+  name: rook-ceph-mgr-dashboard
+  namespace: rook-ceph
+spec:
+  rules:
+  - host: ceph2.odoo-shell.dev # Change by your domain
+    http:
+      paths:
+      - backend:
+          service:
+            name: rook-ceph-mgr-dashboard
+            port:
+              number: 7000
+        path: /
+        pathType: Prefix
+  tls:
+  - hosts:
+    - ceph2.odoo-shell.dev
+    secretName: ceph2-odoo-shell-dev-tls

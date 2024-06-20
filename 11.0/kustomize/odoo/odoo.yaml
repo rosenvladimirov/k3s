@@ -1,0 +1,68 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: odoo11
+  labels:
+    app: odoo
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: odoo
+  template:
+    metadata:
+      labels:
+        app: odoo
+    spec:
+      containers:
+      - name: odoo
+        image: vladimirovrosen/odoo:11.0
+        ports:
+        - containerPort: 8069
+        env:
+        - name: HOST
+          value: odoo-11
+        - name: USER
+          value: odoo
+        - name: PASSWORD
+          value: odoo11
+        volumeMounts:
+        - mountPath: /var/lib/odoo
+          name: data
+        - mountPath: /etc/odoo/odoo.conf
+          name: conf
+          subPath: odoo.conf
+      initContainers:
+      - name: change-ownership-container
+        image: vladimirovrosen/odoo:11.0
+        command: ["sh", "-c", "chown -R 101:101 /etc/odoo/odoo.conf"]
+        securityContext:
+          runAsUser: 0
+          privileged: true
+        volumeMounts:
+        - mountPath: /etc/odoo/odoo.conf
+          name: conf
+          subPath: odoo.conf
+      volumes:
+      - name: data
+        persistentVolumeClaim:
+          claimName: odoo-11-data-pvc
+      - name: conf
+        configMap:
+          name: odoo-11-config-data
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: odoo-service
+spec:
+  type: ClusterIP
+  selector:
+    app: odoo
+  ports:
+  - name: odoo-port
+    port: 8069
+    targetPort: 8069
+  - name: odoo-port-im
+    port: 8072
+    targetPort: 8072

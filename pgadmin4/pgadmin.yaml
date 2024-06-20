@@ -1,0 +1,99 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: pgadmin-data-pvc
+  namespace: odoo-16
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 10Gi
+  storageClassName: longhorn
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: pgadmin4
+  namespace: odoo-16
+spec:
+  selector:
+    matchLabels:
+      app: pgadmin4
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: pgadmin4
+    spec:
+      containers:
+      - name: pgadmin4
+        image: dpage/pgadmin4:latest
+        imagePullPolicy: Always
+        env:
+        - name: PGADMIN_DEFAULT_EMAIL
+          value: "vladimirov.rosen@gmail.com"
+        - name: PGADMIN_DEFAULT_PASSWORD
+          value: "admin"
+        - name: PGADMIN_LISTEN_PORT
+          value: "5050"
+        ports:
+        - containerPort: 5050
+        volumeMounts:
+        - mountPath: /var/lib/pgadmin
+          name: data
+      initContainers:
+      - name: change-ownership-container
+        image: busybox
+        command: ["sh", "-c", "chown -R 5050:5050 /var/lib/pgadmin"]
+        securityContext:
+          runAsUser: 0
+          privileged: true
+        volumeMounts:
+        - name: data
+          mountPath: /var/lib/pgadmin
+      volumes:
+      - name: data
+        persistentVolumeClaim:
+          claimName: pgadmin-data-pvc
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: pgadmin4-service
+  namespace: odoo-16
+spec:
+  type: ClusterIP
+  selector:
+    app: pgadmin4
+  ports:
+  - name: pgadmin4-port
+    port: 5050
+    targetPort: 5050
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-production
+    traefik.ingress.kubernetes.io/router.entrypoints: websecure
+  labels:
+    app: pgadmin4
+  name: pgadmin4
+  namespace: odoo-16
+spec:
+  rules:
+  - host: pgadmin2.odoo-shell.dev
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: pgadmin4-service
+            port:
+              number: 5050
+  tls:
+  - hosts:
+    - pgadmin2.odoo-shell.dev
+    secretName: pgadmin2-odoo-shell-dev-tls
